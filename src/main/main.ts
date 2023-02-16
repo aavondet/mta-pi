@@ -13,7 +13,14 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
+import fetch, { Headers } from 'node-fetch';
 import { resolveHtmlPath } from './util';
+import GtfsRealtimeBindings from 'gtfs-realtime-bindings'
+
+
+const stationId = '719'
+const stationIdNorth = stationId + 'N'
+const stationIdSouth = stationId + 'S'
 
 class AppUpdater {
   constructor() {
@@ -23,12 +30,42 @@ class AppUpdater {
   }
 }
 
+interface StationItem {
+  arrival: number | null;
+  departure: number | null;
+}
+
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+ipcMain.handle('request-feed', async (event, arg) => {
+  const response = await fetch('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs', {headers: new Headers({'x-api-key': process.env.API_KEY ?? ""})})
+  const buffer = await response.arrayBuffer();
+  const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
+    new Uint8Array(buffer)
+  );
+  let northStopTimes: StationItem[] = []
+  let southStopTimes: StationItem[] = []
+  feed.entity.forEach((entity) => {
+    if (entity.tripUpdate && entity.tripUpdate.trip.routeId === '7') {
+      let northStopTimeUpdate = entity.tripUpdate.stopTimeUpdate?.filter(stop => stop.stopId == stationIdNorth)
+      let southStopTimeUpdate = entity.tripUpdate.stopTimeUpdate?.filter(stop => stop.stopId == stationIdSouth)
+      if (northStopTimeUpdate?.length == 1) {
+        const newVal: StationItem  = {arrival: Number(northStopTimeUpdate[0].arrival?.time), departure: Number(northStopTimeUpdate[0].departure?.time)}
+        northStopTimes = [...northStopTimes, newVal]
+      }
+      if (southStopTimeUpdate?.length == 1) {
+        const newVal: StationItem = {arrival: Number(southStopTimeUpdate[0].arrival?.time), departure: Number(southStopTimeUpdate[0].departure?.time)}
+        southStopTimes = [...southStopTimes, newVal]
+      }
+    }
+  });
+  return {northStopTimes, southStopTimes};
 });
 
 if (process.env.NODE_ENV === 'production') {
