@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
+import TimeTable from './TimeTable';
 
 const MINUTE_MS = 60000;
 
 interface StationItem {
   arrival: number | null;
   departure: number | null;
-}
-
-function getMinutesFromNow(time: number | null) {
-  if (time === null) {
-    return 0;
-  }
-  const now = new Date()
-  const then = new Date(time * 1000)
-  return Math.round((then.getTime() - now.getTime()) / 60000)
 }
 
 function Hello() {
@@ -39,24 +31,8 @@ function Hello() {
 
   return (
     <div>
-      <h1>Flushing Bound Arrival Times</h1>
-      <div className="Hello">
-        <ul>
-          {northStopTimeUpdates
-          .map(item => getMinutesFromNow(item))
-          .filter(item => item >= 0)
-          .map(arrival =><li key={arrival}>{arrival}</li>)}
-        </ul>
-      </div>
-      <h1>Manhattan Bound Arrival Times</h1>
-      <div className="Hello">
-        <ul>
-          {southStopTimeUpdates
-          .map(item => getMinutesFromNow(item))
-          .filter(item => item >= 0)
-          .map(arrival =><li key={arrival}>{arrival}</li>)}
-        </ul>
-      </div>
+      <TimeTable timeUpdates={northStopTimeUpdates} title='Flushing Bound Arrival Times' />
+      <TimeTable timeUpdates={southStopTimeUpdates} title='Manhattan Bound Arrival Times' />
     </div>
   );
 }
