@@ -1,11 +1,7 @@
-import { ReactComponentElement, ReactElement, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import GtfsRealtimeBindings from 'gtfs-realtime-bindings'
 
-const stationId = '719'
-const stationIdNorth = stationId + 'N'
-const stationIdSouth = stationId + 'S'
 const MINUTE_MS = 60000;
 
 interface StationItem {
